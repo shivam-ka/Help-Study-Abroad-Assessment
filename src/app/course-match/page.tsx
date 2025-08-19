@@ -12,9 +12,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Sparkles, Star, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import axios from 'axios';
+
+interface Recommendation {
+  courseName: string;
+  universityName: string;
+  matchScore: number;
+  rationale: string;
+}
 
 export default function CourseMatchPage() {
-  const [recommendations, setRecommendations] = useState<CourseMatchOutput | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,18 +34,24 @@ export default function CourseMatchPage() {
   });
 
   async function onSubmit(values: CourseMatchInput) {
-    setIsLoading(true);
-    setError(null);
-    setRecommendations(null);
+
+    setIsLoading(true)
     try {
-      const result = await courseMatch(values);
-      setRecommendations(result);
-    } catch (e) {
+      const response = await axios.post("/api/recommendations", {
+        prompt: values.description,
+        count: 5
+      })
+
+      if (response.data.success) {
+        setRecommendations(response.data.data)
+        console.log(recommendations)
+      }
+
+    } catch (error) {
+      console.error(error)
       setError('An error occurred while generating recommendations. Please try again.');
-      console.error(e);
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false)
   }
 
   const exampleDescription = "I'm a high school student with strong grades in Math and Physics. I love coding, building small robots, and I'm fascinated by artificial intelligence. I'm looking for an undergraduate program at a top-tier university, preferably in the US, that has a great reputation for engineering and a vibrant campus life.";
@@ -75,9 +89,9 @@ export default function CourseMatchPage() {
                   </FormItem>
                 )}
               />
-               <Button 
-                type="button" 
-                variant="link" 
+              <Button
+                type="button"
+                variant="link"
                 className="p-0 h-auto text-accent mt-2"
                 onClick={() => form.setValue('description', exampleDescription)}>
                 Use an example
@@ -112,7 +126,7 @@ export default function CourseMatchPage() {
         <div className="mt-12">
           <h2 className="font-headline text-3xl font-bold mb-6 text-center text-primary">Your Recommended Courses</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {recommendations.suggestions.map((rec, index) => (
+            {recommendations.map((rec, index) => (
               <Card key={index} className="flex flex-col">
                 <CardHeader>
                   <CardTitle className="font-headline text-xl">{rec.courseName}</CardTitle>
